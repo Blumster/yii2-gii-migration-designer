@@ -1,0 +1,26 @@
+{
+    "name": "blumster/yii2-gii-migration-designer",
+    "description": "Migration designer extension for Yii 2 Gii module",
+    "type": "yii2-extension",
+    "keywords": [ "yii2", "extension", "migration", "gii" ],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Mark Laszlo",
+            "email": ""
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "*",
+        "yiisoft/yii2-gii": "*",
+        "yiisoft/yii2-bootstrap": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "blumster\\migration\\": ""
+        }
+    },
+    "extra": {
+        "bootstrap": "blumster\\migration\\Bootstrap"
+    }
+}
