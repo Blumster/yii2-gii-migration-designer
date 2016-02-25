@@ -2,8 +2,10 @@
 
 namespace blumster\migration\generators\designer;
 
+use blumster\migration\models\Table;
 use Yii;
 
+use yii\base\Exception;
 use yii\gii\CodeFile;
 use yii\helpers\ArrayHelper;
 
@@ -124,6 +126,62 @@ class Generator extends \yii\gii\Generator
     }
 
     /**
+     * Returns the array of the available column types for the dropdown list.
+     *
+     * @return array the available column types
+     */
+    public static function columnTypes()
+    {
+        return [
+            'bigInteger'    => 'Bigint',
+            'bigPrimaryKey' => 'BigPK',
+            'binary'        => 'Binary',
+            'boolean'       => 'Boolean',
+            'date'          => 'Date',
+            'dateTime'      => 'Datetime',
+            'decimal'       => 'Decimal',
+            'double'        => 'Double',
+            'float'         => 'Float',
+            'integer'       => 'Integer',
+            'money'         => 'Money',
+            'primaryKey'    => 'PK',
+            'smallInteger'  => 'Smallint',
+            'string'        => 'String',
+            'text'          => 'Text',
+            'time'          => 'Time',
+            'timestamp'     => 'Timestamp',
+        ];
+    }
+
+    /**
+     * Returns the default value's type for every schema.
+     *
+     * @return array the types for the schema
+     */
+    public static function defaultValueTypes()
+    {
+        return [
+            'bigInteger'    => 'int',
+            'bigPrimaryKey' => 'int',
+            'binary'        => 'string',
+            'boolean'       => 'int',
+            'date'          => 'string',
+            'dateTime'      => 'string',
+            'decimal'       => 'int',
+            'double'        => 'int',
+            'float'         => 'int',
+            'integer'       => 'int',
+            'money'         => 'int',
+            'primaryKey'    => 'int',
+            'smallInteger'  => 'int',
+            'string'        => 'string',
+            'text'          => 'string',
+            'time'          => 'string',
+            'timestamp'     => 'string',
+        ];
+    }
+
+    /**
      * Generates the code based on the current user input and the specified code template files.
      * This is the main method that child classes should implement.
      * Please refer to [[\yii\gii\generators\controller\Generator::generate()]] as an example
@@ -132,31 +190,170 @@ class Generator extends \yii\gii\Generator
      */
     public function generate()
     {
+        echo '<pre>';
+        print_r($_POST);
+        echo '</pre>';
+        exit;
         if (isset($_POST['generate'])) {
             $migrationName = 'm' . gmdate('ymd_His') . '_' . $this->migrationName;
         } else {
             $migrationName = 'm{date_time}_' . $this->migrationName;
         }
 
+        $modelsTable = [ new Table() ];
+
         $file = new CodeFile(Yii::getAlias($this->migrationPath) . '/' . $migrationName . '.php', $this->render('migration.php', [
             'safe' => $this->safe,
             'migrationName' => $migrationName,
             'baseClass' => $this->baseClass,
-            'tables' => static::$afterProcessData['tables'],
-            'indices' => static::$afterProcessData['indices'],
-            'foreignKeys' => static::$afterProcessData['foreignKeys']
+            'processedData' => static::$processedData,
+            'modelsTable' => $modelsTable
         ]));
         $file->id = 'migration_file';
 
         return [ $file ];
     }
 
+    /**
+     * Formats the index's name, based on the current given format.
+     *
+     * @param string $table the table's name
+     * @param string $name the given name of the index
+     * @return string the formatted name
+     */
+    public function formatIndex($table, $name)
+    {
+        return preg_replace('/{{index}}/', $name, preg_replace('/{{table}}/', $table, $this->indexFormat));
+    }
+
+    /**
+     * Formats the foreign key's name, based on the current given format.
+     *
+     * @param string $table the table's name
+     * @param string $refTable the referenced table's name
+     * @return string the formatted name
+     */
+    public function formatForeignKey($table, $refTable)
+    {
+        return preg_replace('/{{ref_table}}/', $refTable, preg_replace('/{{table}}/', $table, $this->foreignKeyFormat));
+    }
+
+    /**
+     * Converts the element of the array
+     * @param array $value the source array
+     * @param string $char the element separator character
+     * @param bool $list if true, array characters ([, ]) will be omitted
+     * @return string the generated string
+     */
     public static function processArray($value, $char = '\'', $list = false) {
         if (!is_array($value)) {
             return $char . $value . $char;
         }
 
         return (!$list ? '[ ' : '') . $char . implode($char . ', ' . $char, $value) . $char . (!$list ? ' ]' : '');
+    }
+
+    /**
+     * Escapes a string's apostrophes with a \ character.
+     *
+     * @param string $string the source string
+     * @return string the escaped string
+     */
+    public static function escapeApostrophe($string)
+    {
+        return str_replace('\'', '\\\'', $string);
+    }
+
+    /**
+     * Generates schema definition calls based on the column's data.
+     *
+     * @param array $column
+     * @return string the generated definition
+     * @throws Exception
+     */
+    public static function generateSchema($column)
+    {
+        if (is_null($column) || !is_array($column) || !isset($column['name']) || !isset($column['schema'])) {
+            throw new Exception('Invalid column!');
+        }
+
+        $schema = '$this';
+        $baseType = null;
+        $defaultValueTypes = static::defaultValueTypes();
+
+        foreach ($column['schema'] as $type => $param) {
+            if (is_int($type) && is_string($param)) {
+                $type = $param;
+                $param = null;
+            }
+
+            if (is_null($baseType)) {
+                $baseType = $type;
+            }
+
+            $char = '';
+            if (in_array($type, [ 'check', 'defaultExpression' ])) {
+                $char = '\'';
+            } elseif ($type == 'defaultValue' && isset($defaultValueTypes[$baseType]) && $defaultValueTypes[$baseType] == 'string') {
+                if ($baseType == 'timestamp' && $param == '0') {
+                    $char = '';
+                } else {
+                    $char = '\'';
+                }
+            }
+
+            $schema .= '->' . $type . '(' . static::processArray($param, $char, true) . ')';
+        }
+
+        return $schema;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function load($data, $formName = null)
+    {
+        if (!parent::load($data, $formName)) {
+            return false;
+        }
+
+        // TODO: load dynamic models
+
+        return true;
+    }
+
+    /**
+     * Creates and populates a set of models.
+     *
+     * @param string $modelClass
+     * @param array $multipleModels
+     * @return array
+     */
+    public static function createMultiple($modelClass, $multipleModels = [])
+    {
+        $model    = new $modelClass;
+        $formName = $model->formName();
+        $post     = Yii::$app->request->post($formName);
+        $models   = [];
+
+        if (! empty($multipleModels)) {
+            $keys = array_keys(ArrayHelper::map($multipleModels, 'id', 'id'));
+            $multipleModels = array_combine($keys, $multipleModels);
+        }
+
+        if ($post && is_array($post)) {
+            foreach ($post as $i => $item) {
+                if (isset($item['id']) && !empty($item['id']) && isset($multipleModels[$item['id']])) {
+                    $models[] = $multipleModels[$item['id']];
+                } else {
+                    $models[] = new $modelClass;
+                }
+            }
+        }
+
+        unset($model, $formName, $post);
+
+        return $models;
     }
 
     public static $migrationDataExample = [
@@ -198,19 +395,44 @@ class Generator extends \yii\gii\Generator
         ]
     ];
 
-    public static $afterProcessData = [
+    public static $processedData = [
         'tables' => [
             [
                 'name' => 'teszt1',
+                'composite_key' => [
+                    'id', 'id2'
+                ],
                 'columns' => [
-                    [ 'name' => 'id', 'type' => '', 'primary' => true ],
-                    [ 'name' => 'id2', 'type' => '', 'primary' => true ]
+                    [
+                        'name' => 'id',
+                        'schema' => [
+                            'string' => [ 20 ],
+                            'unique',
+                            'defaultValue' => 'asd'
+                        ]
+                    ],
+                    [
+                        'name' => 'id2',
+                        'schema' => [
+                            'integer' => [ 10 ],
+                            'notNull',
+                            'unique',
+                            'defaultValue' => 1000,
+                            'unsigned'
+                        ]
+                    ]
                 ]
             ],
             [
                 'name' => 'teszt2',
                 'columns' => [
-                    [ 'name' => 'id', 'type' => '' ]
+                    [
+                        'name' => 'id',
+                        'schema' => [
+                            'string' => [ 30 ]
+                        ],
+                        'primary' => true
+                    ]
                 ]
             ]
         ],
