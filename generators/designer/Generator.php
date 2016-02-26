@@ -2,7 +2,11 @@
 
 namespace blumster\migration\generators\designer;
 
+use blumster\migration\models\Column;
+use blumster\migration\models\ForeignKey;
+use blumster\migration\models\Index;
 use blumster\migration\models\Table;
+
 use Yii;
 
 use yii\base\Exception;
@@ -47,9 +51,24 @@ class Generator extends \yii\gii\Generator
     public $safe = true;
 
     /**
-     * @var string|null
+     * @var string
      */
     public $migrationName = null;
+
+    /**
+     * @var \blumster\migration\models\Table[]
+     */
+    public $tables = null;
+
+    /**
+     * @var \blumster\migration\models\Index[]
+     */
+    public $indices = null;
+
+    /**
+     * @var \blumster\migration\models\ForeignKey[]
+     */
+    public $foreignKeys = null;
 
     /**
      * @inheritdoc
@@ -190,28 +209,51 @@ class Generator extends \yii\gii\Generator
      */
     public function generate()
     {
-        echo '<pre>';
-        print_r($_POST);
-        echo '</pre>';
-        exit;
         if (isset($_POST['generate'])) {
             $migrationName = 'm' . gmdate('ymd_His') . '_' . $this->migrationName;
         } else {
             $migrationName = 'm{date_time}_' . $this->migrationName;
         }
 
-        $modelsTable = [ new Table() ];
-
         $file = new CodeFile(Yii::getAlias($this->migrationPath) . '/' . $migrationName . '.php', $this->render('migration.php', [
             'safe' => $this->safe,
             'migrationName' => $migrationName,
             'baseClass' => $this->baseClass,
-            'processedData' => static::$processedData,
-            'modelsTable' => $modelsTable
+            'tables' => $this->tables,
+            'indices' => $this->indices,
+            'foreignKeys' => $this->foreignKeys
         ]));
         $file->id = 'migration_file';
 
         return [ $file ];
+    }
+
+    /**
+     * @param \blumster\migration\models\Index $index
+     * @return string
+     */
+    public function generateIndexName($index)
+    {
+        $name = '';
+
+        foreach ($index->columns as $col) {
+            if ($name != '') {
+                $name .= '_';
+            }
+
+            $name .= $col;
+        }
+
+        return $this->formatIndex($index->table, $name);
+    }
+
+    /**
+     * @param \blumster\migration\models\ForeignKey $fKey
+     * @return string
+     */
+    public function generateForeignKeyName($fKey)
+    {
+        return $this->formatForeignKey($fKey->table, $fKey->refTable);
     }
 
     /**
@@ -267,13 +309,13 @@ class Generator extends \yii\gii\Generator
     /**
      * Generates schema definition calls based on the column's data.
      *
-     * @param array $column
+     * @param \blumster\migration\models\Column $column
      * @return string the generated definition
      * @throws Exception
      */
     public static function generateSchema($column)
     {
-        if (is_null($column) || !is_array($column) || !isset($column['name']) || !isset($column['schema'])) {
+        if (is_null($column) || empty($column->name) || empty($column->schema)) {
             throw new Exception('Invalid column!');
         }
 
@@ -317,7 +359,58 @@ class Generator extends \yii\gii\Generator
             return false;
         }
 
-        // TODO: load dynamic models
+        /*
+        echo '<pre>';
+        print_r($data);
+        echo '</pre>';
+        // */
+
+        if (isset($data['Table'])) {
+            $this->tables = static::createMultiple(Table::className());
+            Table::loadMultiple($this->tables, $data);
+
+            $loadData = [];
+
+            for ($i = 0; $i < count($this->tables); ++$i) {
+                $loadData['Column'] = $data['Column'][$i];
+
+                $this->tables[$i]->columns = static::createMultiple(Column::className(), [], $loadData);
+                $this->tables[$i]->isNewRecord = false;
+                Column::loadMultiple($this->tables[$i]->columns, $loadData);
+            }
+        } else {
+            $this->tables = [ new Table() ];
+        }
+
+        if (isset($data['Index'])) {
+            $this->indices = static::createMultiple(Index::className());
+
+            Index::loadMultiple($this->indices, $data);
+
+            foreach ($this->indices as $index) {
+                $index->isNewRecord = false;
+            }
+        } else {
+            $this->indices = [ new Index() ];
+        }
+
+        if (isset($data['ForeignKey'])) {
+            $this->foreignKeys = static::createMultiple(ForeignKey::className());
+
+            ForeignKey::loadMultiple($this->foreignKeys, $data);
+
+            foreach ($this->foreignKeys as $fKey) {
+                $fKey->isNewRecord = false;
+            }
+        } else {
+            $this->foreignKeys = [ new ForeignKey() ];
+        }
+        /*
+        echo '<pre>';
+        print_r($this);
+        echo '</pre>';
+        exit;
+        // */
 
         return true;
     }
@@ -327,13 +420,17 @@ class Generator extends \yii\gii\Generator
      *
      * @param string $modelClass
      * @param array $multipleModels
+     * @param array $data
      * @return array
      */
-    public static function createMultiple($modelClass, $multipleModels = [])
+    public static function createMultiple($modelClass, $multipleModels = [], $data = null)
     {
+        /* @var \yii\base\Model $model */
         $model    = new $modelClass;
         $formName = $model->formName();
-        $post     = Yii::$app->request->post($formName);
+        // added $data=null to function arguments
+        // modified the following line to accept new argument
+        $post     = empty($data) ? Yii::$app->request->post($formName) : $data[$formName];
         $models   = [];
 
         if (! empty($multipleModels)) {

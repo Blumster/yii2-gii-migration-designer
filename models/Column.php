@@ -6,7 +6,10 @@ use yii\base\Model;
 
 class Column extends Model
 {
-    public $isNewRecord = false;
+    /**
+     * @var bool
+     */
+    public $isNewRecord = true;
 
     /**
      * @var string
@@ -17,6 +20,33 @@ class Column extends Model
      * @var string
      */
     public $type = null;
+
+    /**
+     * @var array
+     */
+    public $schema = null;
+
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [ [ 'name', 'type' ], 'string' ],
+            [ [ 'name', 'type' ], 'required' ]
+        ];
+    }
+
+    public function load($data, $formName = null)
+    {
+        if (!parent::load($data, $formName)) {
+            return false;
+        }
+
+        $this->schema = [ $this->type ];
+
+        return true;
+    }
 
     public static function stickyAttributes()
     {

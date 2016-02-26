@@ -1,59 +1,144 @@
 <?php
 
 use blumster\migration\DesignerAsset;
+use blumster\migration\models\ForeignKey;
+use blumster\migration\models\Index;
 use blumster\migration\models\Table;
 
 use wbraganca\dynamicform\DynamicFormWidget;
-use yii\bootstrap\Html;
 
 /* @var yii\web\View $this */
 /* @var yii\widgets\ActiveForm $form */
 /* @var blumster\migration\generators\designer\Generator $generator */
-/* @var blumster\migration\models\Table[] $modelsTable */
 
 DesignerAsset::register($this);
 
-if (!isset($modelsTable)) {
-    $modelsTable = [ new Table() ];
+if (empty($generator->tables)) {
+    $generator->tables = [ new Table() ];
+}
+
+if (empty($generator->indices)) {
+    $generator->indices = [ new Index() ];
+}
+
+if (empty($generator->foreignKeys)) {
+    $generator->foreignKeys = [ new ForeignKey() ];
 }
 
 ?>
 
 <?= $form->field($generator, 'migrationName')->textInput() ?>
+
 <div class="row panel-body">
     <?php DynamicFormWidget::begin([
         'widgetContainer' => 'dynamic_tables',
-        'widgetBody' => '.tables', // required: css class selector
-        'widgetItem' => '.table', // required: css class
-        'insertButton' => '.add-table', // css class
-        'deleteButton' => '.del-table', // css class
-        'model' => $modelsTable[0],
+        'widgetBody' => '.db-tables',
+        'widgetItem' => '.db-table',
+        'insertButton' => '.add-db-table',
+        'deleteButton' => '.del-db-table',
+        'model' => $generator->tables[0],
         'min' => 0,
-        'formId' => 'migration-designer-form',
+        'formId' => $form->id,
         'formFields' => [
-            'name',
-        ],
+            'name'
+        ]
+    ]); ?>
+    <div class="table-collapse">
+        <h4>Tables</h4>
+        <table class="table table-bordered db-tables-table">
+            <thead>
+                <tr class="active">
+                    <td></td>
+                    <td><label class="control-label">Data</label></td>
+                    <td><label class="control-label">Columns</label></td>
+                </tr>
+            </thead>
+
+            <tbody class="db-tables">
+                <?php foreach ($generator->tables as $i => $table): ?>
+                    <?= $this->render('views/_table', [ 'form' => $form, 'table' => $table, 'i' => $i ]) ?>
+                <?php endforeach ?>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="active"><button type="button" class="add-db-table btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <?php DynamicFormWidget::end() ?>
+
+    <?php DynamicFormWidget::begin([
+        'widgetContainer' => 'dynamic_indices',
+        'widgetBody' => '.db-indices',
+        'widgetItem' => '.db-index',
+        'insertButton' => '.add-db-index',
+        'deleteButton' => '.del-db-index',
+        'model' => $generator->indices[0],
+        'min' => 0,
+        'formId' => $form->id,
+        'formFields' => [
+            'name'
+        ]
     ]); ?>
 
-    <h4>Tables</h4>
-    <table class="table table-bordered">
+    <h4>Indices</h4>
+    <table class="table table-bordered db-indices-table">
         <thead>
             <tr class="active">
                 <td></td>
                 <td><label class="control-label">Data</label></td>
-                <td><label class="control-label">Columns</label></td>
             </tr>
         </thead>
-
-        <tbody class="tables">
-            <?php foreach ($modelsTable as $i => $table): ?>
-                <?= $this->render('views/_table', [ 'form' => $form, 'table' => $table, 'i' => $i ]); ?>
-            <?php endforeach ?>
+        <tbody class="db-indices">
+        <?php foreach ($generator->indices as $i => $index): ?>
+            <?= $this->render('views/_index', [ 'form' => $form, 'index' => $index, 'i' => $i ]) ?>
+        <?php endforeach ?>
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="5" class="active"><button type="button" class="add-table btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button></td>
+                <td colspan="2" class="active">
+                    <button type="button" class="add-db-index btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button>
+                </td>
             </tr>
+        </tfoot>
+    </table>
+
+    <?php DynamicFormWidget::end() ?>
+
+    <?php DynamicFormWidget::begin([
+        'widgetContainer' => 'dynamic_foreign_keys',
+        'widgetBody' => '.db-foreign-keys',
+        'widgetItem' => '.db-foreign-key',
+        'insertButton' => '.add-db-foreign-key',
+        'deleteButton' => '.del-db-foreign-key',
+        'model' => $generator->foreignKeys[0],
+        'min' => 0,
+        'formId' => $form->id,
+        'formFields' => [
+            'name'
+        ]
+    ]); ?>
+
+    <h4>Foreign Keys</h4>
+    <table class="table table-bordered db-foreign-keys-table">
+        <thead>
+        <tr class="active">
+            <td></td>
+            <td><label class="control-label">Data</label></td>
+        </tr>
+        </thead>
+        <tbody class="db-foreign-keys">
+        <?php foreach ($generator->foreignKeys as $i => $foreignKey): ?>
+            <?= $this->render('views/_foreign_key', [ 'form' => $form, 'foreignKey' => $foreignKey, 'i' => $i ]) ?>
+        <?php endforeach ?>
+        </tbody>
+        <tfoot>
+        <tr>
+            <td colspan="2" class="active">
+                <button type="button" class="add-db-foreign-key btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button>
+            </td>
+        </tr>
         </tfoot>
     </table>
 

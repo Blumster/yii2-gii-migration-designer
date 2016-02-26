@@ -3,13 +3,14 @@
 namespace blumster\migration\models;
 
 use yii\base\Model;
+use yii\helpers\ArrayHelper;
 
 class Table extends Model
 {
     /**
      * @var bool
      */
-    public $isNewRecord = false;
+    public $isNewRecord = true;
 
     /**
      * @var string
@@ -20,6 +21,22 @@ class Table extends Model
      * @var Column[]|array|null
      */
     public $columns = null;
+
+    /**
+     * @var array
+     */
+    public $compositeKey = null;
+
+    /**
+     * @inheritdoc
+     */
+    public function rules()
+    {
+        return [
+            [ [ 'name' ], 'string' ],
+            [ [ 'name' ], 'required' ]
+        ];
+    }
 
     public function __construct($config = [])
     {
