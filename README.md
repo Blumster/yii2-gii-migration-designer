@@ -10,13 +10,13 @@ The preferred way to install this extension is through [composer](http://getcomp
 Either run
 
 ```
-php composer.phar require-dev --prefer-dist blumster/yii2-migration-designer "*"
+php composer.phar require-dev --prefer-dist blumster/yii2-gii-migration-designer "*"
 ```
 
 or add
 
 ```
-"blumster/yii2-migration-designer": "*"
+"blumster/yii2-gii-migration-designer": "*"
 ```
 
 to the require-dev section of your `composer.json` file.
