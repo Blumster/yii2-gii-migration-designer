@@ -1,7 +1,5 @@
 <?php
 
-use yii\bootstrap\Html;
-
 /* @var yii\bootstrap\ActiveForm $form */
 /* @var blumster\migration\models\Index $index */
 /* @var int $i */

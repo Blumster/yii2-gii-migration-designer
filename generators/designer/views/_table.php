@@ -2,8 +2,6 @@
 
 use wbraganca\dynamicform\DynamicFormWidget;
 
-use yii\bootstrap\Html;
-
 /* @var yii\bootstrap\ActiveForm $form */
 /* @var blumster\migration\models\Table $table */
 /* @var int $i */
@@ -15,23 +13,16 @@ use yii\bootstrap\Html;
         <button type="button" class="del-db-table btn btn-danger btn-xs"><i class="glyphicon glyphicon-minus"></i></button>
     </td>
     <td>
-        <?php
-
-        echo $form->field($table, "[{$i}]name")->begin();
-        echo Html::activeLabel($table, "[{$i}]name");
-        echo Html::activeTextInput($table, "[{$i}]name", [ 'maxlength' => true, 'class' => 'form-control' ]);
-        echo Html::error($table,"[{$i}]name", [ 'class' => 'help-block' ]);
-        echo $form->field($table, "[{$i}]name")->end();
-
-        ?>
+        <?= $form->field($table, "[{$i}]name")->textInput([ 'maxlength' => true, 'class' => 'form-control' ]) ?>
     </td>
     <td>
+        <?php $tableUnique = uniqid(); ?>
         <?php DynamicFormWidget::begin([
-            'widgetContainer' => 'dynamic_columns',
-            'widgetBody' => '.db-columns',
-            'widgetItem' => '.db-column',
-            'insertButton' => '.add-db-column',
-            'deleteButton' => '.del-db-column',
+            'widgetContainer' => 'dynamic_columns_' . $tableUnique,
+            'widgetBody' => '.db-columns-' . $tableUnique,
+            'widgetItem' => '.db-column-' . $tableUnique,
+            'insertButton' => '.add-db-column-' . $tableUnique,
+            'deleteButton' => '.del-db-column-' . $tableUnique,
             'model' => $table->columns[0],
             'min' => 1,
             'formId' => $form->id,
@@ -42,14 +33,14 @@ use yii\bootstrap\Html;
         ]); ?>
 
         <table class="table table-bordered db-columns-table">
-            <tbody class="db-columns">
+            <tbody class="db-columns-<?= $tableUnique ?>">
             <?php foreach ($table->columns as $c => $column): ?>
-                <?= $this->render('_column', [ 'form' => $form, 'table' => $table, 'i' => $i, 'column' => $column, 'c' => $c ]) ?>
+                <?= $this->render('_column', [ 'form' => $form, 'table' => $table, 'i' => $i, 'column' => $column, 'c' => $c, 'tableUnique' => $tableUnique ]) ?>
             <?php endforeach ?>
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3" class="active"><button type="button" class="add-db-column btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button></td>
+                    <td colspan="6" class="active"><button type="button" class="add-db-column-<?= $tableUnique ?> btn btn-success btn-xs"><i class="glyphicon glyphicon-plus"></i></button></td>
                 </tr>
             </tfoot>
         </table>

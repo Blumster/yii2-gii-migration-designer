@@ -22,8 +22,8 @@ use blumster\migration\models\ForeignKey;
             <?= $form->field($foreignKey, "[{$i}]refColumns")->textInput([ 'maxlength' => true ]) ?>
         </div>
         <div class="col-md-2">
-            <?= $form->field($foreignKey, "[{$i}]delete")->dropDownList(ForeignKey::constraintOptions()) ?>
-            <?= $form->field($foreignKey, "[{$i}]update")->dropDownList(ForeignKey::constraintOptions()) ?>
+            <?= $form->field($foreignKey, "[{$i}]delete")->dropDownList([ '' => '' ] + ForeignKey::constraintOptions()) ?>
+            <?= $form->field($foreignKey, "[{$i}]update")->dropDownList([ '' => '' ] + ForeignKey::constraintOptions()) ?>
         </div>
     </td>
 </tr>

@@ -17,7 +17,7 @@ class ForeignKey extends Model
     public $table = null;
 
     /**
-     * @var array
+     * @var string
      */
     public $columns = null;
 
@@ -27,7 +27,7 @@ class ForeignKey extends Model
     public $refTable = null;
 
     /**
-     * @var array
+     * @var string
      */
     public $refColumns = null;
 
@@ -42,63 +42,97 @@ class ForeignKey extends Model
     public $update = null;
 
     /**
+     * @var string
+     */
+    public $name = null;
+
+    /**
      * @inheritdoc
      */
     public function rules()
     {
         return [
             [ [ 'table', 'columns', 'refTable', 'refColumns' ], 'required' ],
-            [ [ 'table', 'refTable', 'delete', 'update' ], 'string' ],
-            [ [ 'columns', 'refColumns' ], 'each', 'rule' => 'string' ],
+            [ [ 'table', 'refTable', 'columns', 'refColumns', 'delete', 'update' ], 'string' ],
             [ [ 'delete', 'update' ], 'in', 'range' => [ 'RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION', 'SET DEFAULT' ], 'skipOnEmpty' => true, ]
         ];
     }
 
+    /**
+     * @inheritdoc
+     */
     public function load($data, $formName = null)
     {
         if (!parent::load($data, $formName)) {
             return false;
         }
 
-        $this->columns = explode(';', $this->columns);
-        $this->columns = explode(';', $this->columns);
-
-        if (in_array($this->delete, [ 'RESTRAINT', 'NO ACTION' ])) {
+        if (in_array($this->delete, [ '', 'RESTRAINT', 'NO ACTION' ])) {
             $this->delete = null;
         }
 
-        if (in_array($this->update, [ 'RESTRAINT', 'NO ACTION' ])) {
+        if (in_array($this->update, [ '', 'RESTRAINT', 'NO ACTION' ])) {
             $this->update = null;
         }
 
         return true;
     }
 
+    /**
+     * Returns the formatted name of this ForeignKey.
+     *
+     * @param string $format
+     * @return string
+     */
+    public function formattedName($format)
+    {
+        if (!is_null($this->name)) {
+            return $this->name;
+        }
+
+        return ($this->name = preg_replace('/{{ref_table}}/', $this->refTable, preg_replace('/{{table}}/', $this->table, $format)));
+    }
+
+    /**
+     * @return string[]
+     */
     public static function constraintOptions()
     {
         return [
-            'RESTRICT',
-            'CASCADE',
-            'SET NULL',
-            'NO ACTION',
-            'SET DEFAULT'
+            'RESTRICT' => 'RESTRICT',
+            'CASCADE' => 'CASCADE',
+            'SET NULL' => 'SET NULL',
+            'NO ACTION' => 'NO ACTION',
+            'SET DEFAULT' => 'SET DEFAULT'
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function stickyAttributes()
     {
         return [];
     }
 
+    /**
+     * @return string[]
+     */
     public static function hints()
     {
         return [
-            'table' => '',
-            'delete' => '',
-            'update' => ''
+            'table' => 'The referencing table.',
+            'columns' => 'The referencing columns.',
+            'refTable' => 'The referenced table.',
+            'refColumns' => 'The referenced columns',
+            'delete' => 'ON DELETE constraint.',
+            'update' => 'ON UPDATE constraint.'
         ];
     }
 
+    /**
+     * @return string[]
+     */
     public static function autoCompleteData()
     {
         return [];

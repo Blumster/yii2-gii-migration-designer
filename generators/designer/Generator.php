@@ -83,6 +83,9 @@ class Generator extends \yii\gii\Generator
         ]);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function attributeLabels()
     {
         return ArrayHelper::merge(parent::attributeLabels(), [
@@ -97,6 +100,9 @@ class Generator extends \yii\gii\Generator
         ]);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function hints()
     {
         return ArrayHelper::merge(parent::attributeHints(), [
@@ -110,6 +116,9 @@ class Generator extends \yii\gii\Generator
         ]);
     }
 
+    /**
+     * @inheritdoc
+     */
     public function stickyAttributes()
     {
         return ArrayHelper::merge(parent::stickyAttributes(), [
@@ -136,6 +145,7 @@ class Generator extends \yii\gii\Generator
     {
         return 'Migration Designer';
     }
+
     /**
      * @inheritdoc
      */
@@ -201,11 +211,7 @@ class Generator extends \yii\gii\Generator
     }
 
     /**
-     * Generates the code based on the current user input and the specified code template files.
-     * This is the main method that child classes should implement.
-     * Please refer to [[\yii\gii\generators\controller\Generator::generate()]] as an example
-     * on how to implement this method.
-     * @return CodeFile[] a list of code files to be created.
+     * @inheritdoc
      */
     public function generate()
     {
@@ -215,13 +221,12 @@ class Generator extends \yii\gii\Generator
             $migrationName = 'm{date_time}_' . $this->migrationName;
         }
 
+        foreach ($this->tables as $table) {
+            $table->beforeGenerate();
+        }
+
         $file = new CodeFile(Yii::getAlias($this->migrationPath) . '/' . $migrationName . '.php', $this->render('migration.php', [
-            'safe' => $this->safe,
-            'migrationName' => $migrationName,
-            'baseClass' => $this->baseClass,
-            'tables' => $this->tables,
-            'indices' => $this->indices,
-            'foreignKeys' => $this->foreignKeys
+            'migrationName' => $migrationName
         ]));
         $file->id = 'migration_file';
 
@@ -234,17 +239,7 @@ class Generator extends \yii\gii\Generator
      */
     public function generateIndexName($index)
     {
-        $name = '';
-
-        foreach ($index->columns as $col) {
-            if ($name != '') {
-                $name .= '_';
-            }
-
-            $name .= $col;
-        }
-
-        return $this->formatIndex($index->table, $name);
+        return $index->formattedName($this->indexFormat);
     }
 
     /**
@@ -253,31 +248,7 @@ class Generator extends \yii\gii\Generator
      */
     public function generateForeignKeyName($fKey)
     {
-        return $this->formatForeignKey($fKey->table, $fKey->refTable);
-    }
-
-    /**
-     * Formats the index's name, based on the current given format.
-     *
-     * @param string $table the table's name
-     * @param string $name the given name of the index
-     * @return string the formatted name
-     */
-    public function formatIndex($table, $name)
-    {
-        return preg_replace('/{{index}}/', $name, preg_replace('/{{table}}/', $table, $this->indexFormat));
-    }
-
-    /**
-     * Formats the foreign key's name, based on the current given format.
-     *
-     * @param string $table the table's name
-     * @param string $refTable the referenced table's name
-     * @return string the formatted name
-     */
-    public function formatForeignKey($table, $refTable)
-    {
-        return preg_replace('/{{ref_table}}/', $refTable, preg_replace('/{{table}}/', $table, $this->foreignKeyFormat));
+        return $fKey->formattedName($this->foreignKeyFormat);
     }
 
     /**
@@ -285,11 +256,16 @@ class Generator extends \yii\gii\Generator
      * @param array $value the source array
      * @param string $char the element separator character
      * @param bool $list if true, array characters ([, ]) will be omitted
+     * @param bool $canBeSingle if true, it can be rendered as a normal value, instead of a single element array
      * @return string the generated string
      */
-    public static function processArray($value, $char = '\'', $list = false) {
+    public static function processArray($value, $char = '\'', $list = false, $canBeSingle = false) {
         if (!is_array($value)) {
             return $char . $value . $char;
+        }
+
+        if ($canBeSingle && count($value) == 1) {
+            return $char . $value[0] . $char;
         }
 
         return (!$list ? '[ ' : '') . $char . implode($char . ', ' . $char, $value) . $char . (!$list ? ' ]' : '');
@@ -316,7 +292,7 @@ class Generator extends \yii\gii\Generator
     public static function generateSchema($column)
     {
         if (is_null($column) || empty($column->name) || empty($column->schema)) {
-            throw new Exception('Invalid column!');
+            throw new Exception('Invalid column: ' . (!is_null($column) ? $column->name : 'null') . '!');
         }
 
         $schema = '$this';
@@ -330,6 +306,7 @@ class Generator extends \yii\gii\Generator
             }
 
             if (is_null($baseType)) {
+                $type = $column->overrideType ?: $type;
                 $baseType = $type;
             }
 
@@ -359,11 +336,7 @@ class Generator extends \yii\gii\Generator
             return false;
         }
 
-        /*
-        echo '<pre>';
-        print_r($data);
-        echo '</pre>';
-        // */
+        $this->migrationName = preg_replace('/\s+/', '_', $this->migrationName);
 
         if (isset($data['Table'])) {
             $this->tables = static::createMultiple(Table::className());
@@ -405,12 +378,6 @@ class Generator extends \yii\gii\Generator
         } else {
             $this->foreignKeys = [ new ForeignKey() ];
         }
-        /*
-        echo '<pre>';
-        print_r($this);
-        echo '</pre>';
-        exit;
-        // */
 
         return true;
     }
@@ -452,94 +419,4 @@ class Generator extends \yii\gii\Generator
 
         return $models;
     }
-
-    public static $migrationDataExample = [
-        'test_table1' => [
-            'columns' => [
-                'id' => 'bigint',
-                'name' => [
-                    'type' => 'string',
-                    'null' => false,
-                    'default' => ''
-                ]
-            ],
-            'primaryKey' => 'id',
-            'indices' => [
-                'name',
-                'name' => 'unique',
-                'id' => 'normal',
-                [
-                    'columns' => [
-                        'id',
-                        'name'
-                    ],
-                    'type' => 'unique'
-                ]
-
-            ]
-        ],
-        'test_table2' => [
-            'columns' => [
-                'id' => [
-                    'type' => 'bigint',
-                    'ai' => true
-                ],
-                'id2' => 'bigint'
-            ],
-            'primary_key' => [
-                'id', 'id2'
-            ]
-        ]
-    ];
-
-    public static $processedData = [
-        'tables' => [
-            [
-                'name' => 'teszt1',
-                'composite_key' => [
-                    'id', 'id2'
-                ],
-                'columns' => [
-                    [
-                        'name' => 'id',
-                        'schema' => [
-                            'string' => [ 20 ],
-                            'unique',
-                            'defaultValue' => 'asd'
-                        ]
-                    ],
-                    [
-                        'name' => 'id2',
-                        'schema' => [
-                            'integer' => [ 10 ],
-                            'notNull',
-                            'unique',
-                            'defaultValue' => 1000,
-                            'unsigned'
-                        ]
-                    ]
-                ]
-            ],
-            [
-                'name' => 'teszt2',
-                'columns' => [
-                    [
-                        'name' => 'id',
-                        'schema' => [
-                            'string' => [ 30 ]
-                        ],
-                        'primary' => true
-                    ]
-                ]
-            ]
-        ],
-        'indices' => [
-            [ 'name' => 'ind1', 'table' => 'teszt1', 'column' => 'id' ],
-            [ 'name' => 'ind2', 'table' => 'teszt2', 'column' => [ 'id', 'bd' ], 'unique' => true ]
-        ],
-        'foreignKeys' => [
-            [ 'name' => 'fk1', 'table' => 'teszt1', 'column' => 'id', 'refTable' => 'teszt2', 'refColumn' => 'id', 'update' => 'CASCADE' ],
-            [ 'name' => 'fk2', 'table' => 'teszt1', 'column' => [ 'id', 'bd' ], 'refTable' => 'teszt2', 'refColumn' => [ 'id', 'bd' ], 'delete' => 'CASCADE', 'update' => 'CASCADE' ]
-        ]
-    ];
 }

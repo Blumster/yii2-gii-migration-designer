@@ -158,5 +158,3 @@ if (empty($generator->foreignKeys)) {
 <?= $form->field($generator, 'usePrefix')->checkbox() ?>
 
 <?= $form->field($generator, 'safe')->checkbox() ?>
-
-<?php /* $form->field($generator, 'asd')->dropDownList(Generator::columnTypes()) */ ?>
