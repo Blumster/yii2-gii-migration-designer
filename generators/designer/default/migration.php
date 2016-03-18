@@ -28,6 +28,8 @@ use <?= $generator->baseClass ?>;
 
 class <?= $migrationName ?> extends <?= $baseClassName . "\n" ?>
 {
+<?php if ($generator->db != 'db') { Generator::echoInheritdocBlock(); echo "    public \$db = '{$generator->db}';\n\n"; } ?>
+<?php Generator::echoInheritdocBlock() ?>
     public function <?= $generator->safe ? 'safeUp' : 'up' ?>()
     {
 <?php $firstTable = true; ?>
@@ -57,6 +59,7 @@ class <?= $migrationName ?> extends <?= $baseClassName . "\n" ?>
 <?php endforeach ?>
     }
 
+<?php Generator::echoInheritdocBlock() ?>
     public function <?= $generator->safe ? 'safeDown' : 'down' ?>()
     {
 <?php foreach ($generator->foreignKeys as $fKey): ?>

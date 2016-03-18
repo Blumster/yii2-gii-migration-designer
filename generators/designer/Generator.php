@@ -341,6 +341,16 @@ class Generator extends \yii\gii\Generator
     }
 
     /**
+     * Echoes the inheritdoc doc block.
+     */
+    public static function echoInheritdocBlock()
+    {
+        echo "    /**\n";
+        echo "     * @inheritdoc\n";
+        echo "     */\n";
+    }
+
+    /**
      * @inheritdoc
      */
     public function load($data, $formName = null)
