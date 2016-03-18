@@ -252,6 +252,19 @@ class Generator extends \yii\gii\Generator
     }
 
     /**
+     * @param string $tableName
+     * @return string
+     */
+    public function generateTableName($tableName)
+    {
+        if ($this->usePrefix) {
+            return '{{%' . $tableName . '}}';
+        }
+
+        return $tableName;
+    }
+
+    /**
      * Converts the element of the array
      * @param array $value the source array
      * @param string $char the element separator character
