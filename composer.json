@@ -14,8 +14,7 @@
         "php": ">=5.4.0",
         "yiisoft/yii2": "~2.0",
         "yiisoft/yii2-gii": "~2.0",
-        "yiisoft/yii2-bootstrap": "~2.0",
-        "wbraganca/yii2-dynamicform": "*"
+        "yiisoft/yii2-bootstrap": "~2.0"
     },
     "support": {
         "issues": "https://github.com/Blumster/yii2-gii-migration-designer/issues?state=open",

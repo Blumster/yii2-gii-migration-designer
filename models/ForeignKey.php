@@ -131,6 +131,14 @@ class ForeignKey extends Model
     }
 
     /**
+     * @inheritdoc
+     */
+    public function attributeHints()
+    {
+        return static::hints();
+    }
+
+    /**
      * @return string[]
      */
     public static function autoCompleteData()

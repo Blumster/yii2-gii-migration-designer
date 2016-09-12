@@ -58,17 +58,17 @@ class Generator extends \yii\gii\Generator
     /**
      * @var \blumster\migration\models\Table[]
      */
-    public $tables = null;
+    public $tables = [];
 
     /**
      * @var \blumster\migration\models\Index[]
      */
-    public $indices = null;
+    public $indices = [];
 
     /**
      * @var \blumster\migration\models\ForeignKey[]
      */
-    public $foreignKeys = null;
+    public $foreignKeys = [];
 
     /**
      * @inheritdoc
@@ -79,7 +79,6 @@ class Generator extends \yii\gii\Generator
             [ [ 'indexFormat', 'foreignKeyFormat', 'migrationPath', 'db', 'baseClass', 'migrationName' ], 'string' ],
             [ [ 'migrationName' ], 'required' ],
             [ [ 'usePrefix', 'safe' ], 'boolean' ],
-            [ [ 'indexFormat', 'foreignKeyFormat', 'migrationPath', 'db', 'baseClass', 'usePrefix', 'safe' ], 'safe' ],
         ]);
     }
 
@@ -113,6 +112,7 @@ class Generator extends \yii\gii\Generator
             'usePrefix' => 'This indicates whether the table name returned by the generated ActiveRecord class should consider the <code>tablePrefix</code> setting of the DB connection. For example, if the table name is <code>tbl_post</code> and <code>tablePrefix=tbl_</code>, the ActiveRecord class will return the table name as <code>{{%post}}</code>.',
             'safe' => 'If checked, the migration will use the <code>safeUp(); safeDown();</code> functions, instead of <code>up(); down();</code> ones.',
             'migrationName' => 'Short name for the migration.',
+            'migrationPath' => 'Path of the folder containing the migrations.'
         ]);
     }
 
@@ -361,8 +361,47 @@ class Generator extends \yii\gii\Generator
 
         $this->migrationName = preg_replace('/\s+/', '_', $this->migrationName);
 
+        $dataFix = [
+            'Table' => [],
+            'Column' => []
+        ];
+
         if (isset($data['Table'])) {
-            $this->tables = static::createMultiple(Table::className());
+            foreach ($data['Table'] as $temp) {
+                $dataFix['Table'][] = $temp;
+            }
+        }
+
+        if (isset($data['Column'])) {
+            foreach ($data['Column'] as $temp) {
+                $columnFix = [];
+
+                foreach ($temp as $colTemp) {
+                    $columnFix[] = $colTemp;
+                }
+
+                $temp = $columnFix;
+
+                $dataFix['Column'][] = $temp;
+            }
+        }
+
+        if (isset($data['Index'])) {
+            foreach ($data['Index'] as $temp) {
+                $dataFix['Index'][] = $temp;
+            }
+        }
+
+        if (isset($data['ForeignKey'])) {
+            foreach ($data['ForeignKey'] as $temp) {
+                $dataFix['ForeignKey'][] = $temp;
+            }
+        }
+
+        $data = $dataFix;
+
+        if (isset($data['Table'])) {
+            $this->tables = static::createMultiple(Table::className(), [], $data);
             Table::loadMultiple($this->tables, $data);
 
             $loadData = [];
@@ -379,7 +418,7 @@ class Generator extends \yii\gii\Generator
         }
 
         if (isset($data['Index'])) {
-            $this->indices = static::createMultiple(Index::className());
+            $this->indices = static::createMultiple(Index::className(), [], $data);
 
             Index::loadMultiple($this->indices, $data);
 
@@ -391,7 +430,7 @@ class Generator extends \yii\gii\Generator
         }
 
         if (isset($data['ForeignKey'])) {
-            $this->foreignKeys = static::createMultiple(ForeignKey::className());
+            $this->foreignKeys = static::createMultiple(ForeignKey::className(), [], $data);
 
             ForeignKey::loadMultiple($this->foreignKeys, $data);
 
@@ -423,7 +462,7 @@ class Generator extends \yii\gii\Generator
         $post     = empty($data) ? Yii::$app->request->post($formName) : $data[$formName];
         $models   = [];
 
-        if (! empty($multipleModels)) {
+        if (!empty($multipleModels)) {
             $keys = array_keys(ArrayHelper::map($multipleModels, 'id', 'id'));
             $multipleModels = array_combine($keys, $multipleModels);
         }

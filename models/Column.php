@@ -183,7 +183,7 @@ class Column extends Model
             'defaultValue' => 'Default value of the column',
             'unique' => 'Check, if you want a unique index on this column. (Specifying a dedicated unique index has the same effect.)',
             'unsigned' => 'Check, if the column should only contain positive numbers.',
-            'notNull' => 'Check, if the column should not hold NULL value.',
+            'notNull' => 'Check, if the column should not hold a NULL value.',
             'autoIncrement' => 'Check, if the column should be AUTO_INCREMENT.',
             'length' => 'Length of the field.'
         ];
